@@ -3,23 +3,32 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { connectFactory } from "../lib/factory";
-import { connectWallet } from "../lib/wallet";
 import { useRouter } from "next/navigation";
+import WalletConnect from "../components/Wallet";
 
 export default function HomePage() {
   const [walletAddress, setWalletAddress] = useState(null);
   const [storeAddress, setStoreAddress] = useState(null);
   const router = useRouter();
 
-  // Connect Wallet
   const handleConnect = async () => {
-    const wallet = await connectWallet();
-    if (wallet?.address) {
-      setWalletAddress(wallet.address);
+    if (!window.ethereum) {
+      alert("Please install MetaMask");
+      return;
     }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    setWalletAddress(address);
   };
 
-  // Check store when wallet connected
+  const handleDisconnect = () => {
+    setWalletAddress(null);
+  };
+
+  // Check store after wallet connected
   useEffect(() => {
     if (!walletAddress) return;
 
@@ -29,7 +38,7 @@ export default function HomePage() {
 
       if (userStore !== "0x0000000000000000000000000000000000000000") {
         setStoreAddress(userStore);
-        router.push("/store"); // Nếu có store → vào dashboard
+        router.push("/store"); // Nếu có store → tự vào dashboard
       }
     };
 
@@ -38,15 +47,25 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-10 bg-black text-white space-y-6">
-      <h1 className="text-5xl font-bold text-purple-500">Welcome to ZN STORE</h1>
-      <p>Connect your wallet to start using ZN Store.</p>
+      <h1 className="text-5xl font-bold text-purple-500">ZN STORE</h1>
+      <p>Decentralized Store on Blockchain. Connect wallet to continue.</p>
 
-      <button onClick={handleConnect} className="px-6 py-3 bg-purple-600 rounded hover:bg-purple-700">
-        {walletAddress ? `Connected: ${walletAddress}` : "Connect Wallet"}
-      </button>
+      <WalletConnect
+        walletAddress={walletAddress}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
+      />
 
       {walletAddress && !storeAddress && (
-        <p className="text-gray-400 mt-4">No store found. Please create your store in the dashboard.</p>
+        <p className="text-gray-400 mt-4">
+          No store found yet.{" "}
+          <span
+            onClick={() => router.push("/store")}
+            className="text-purple-400 underline cursor-pointer hover:text-purple-300"
+          >
+            Create your store now
+          </span>
+        </p>
       )}
     </main>
   );
