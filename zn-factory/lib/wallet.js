@@ -1,17 +1,17 @@
-"use client";
-
 import { ethers } from "ethers";
 
 export async function connectWallet() {
-    if (typeof window !== "undefined" && window.ethereum) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        const address = await signer.getAddress();
+    if (!window.ethereum) throw new Error("Please install Metamask");
 
-        return { provider, signer, address };
-    } else {
-        alert("Please install Metamask.");
-        return null;
-    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    return accounts[0] ?? null;
+}
+
+export async function getCurrentAddress() {
+    if (!window.ethereum) return null;
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await provider.listAccounts();
+    return accounts[0] ?? null;
 }
